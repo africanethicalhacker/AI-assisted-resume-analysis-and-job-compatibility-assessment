@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Resume{% endblock %}
+{% block content %}
+<h1 class="h4">{{ name }}</h1>
+<p class="text-muted small">Uploaded {{ resume.uploaded_at.strftime('%Y-%m-%d %H:%M') }} UTC &middot; {{ resume.size_bytes }} bytes &middot;
+  scan: {{ resume.scan_status }} &middot; scheduled deletion {{ resume.delete_after.strftime('%Y-%m-%d') }}</p>
+
+{% if not profile %}
+  <div class="alert alert-warning">No analysis available for this resume.</div>
+{% else %}
+  {% set sec = profile.security %}
+  {% if sec.injection_findings or sec.hidden_text_removed_chars or sec.white_text_chars %}
+  <div class="alert alert-warning">
+    <strong>Security notes.</strong> This document contains content that looks like an attempt to influence an AI system
+    or text that people cannot see. It is treated as plain data and never obeyed; scores are computed by fixed arithmetic.
+    <ul class="mb-0">
+      {% for f in sec.injection_findings %}<li>Instruction-like text ({{ f.label }}): &ldquo;{{ f.snippet }}&rdquo;</li>{% endfor %}
+      {% if sec.hidden_text_removed_chars %}<li>{{ sec.hidden_text_removed_chars }} hidden characters were removed.</li>{% endif %}
+      {% if sec.white_text_chars %}<li>{{ sec.white_text_chars }} characters are white-coloured text (kept, flagged).</li>{% endif %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="card"><div class="card-body">
+      <div class="text-muted small">Resume completeness (heuristic)</div>
+      <div class="display-6">{{ profile.quality.score }}<small class="fs-6">/100</small></div></div></div></div>
+    <div class="col-md-8"><div class="card"><div class="card-body">
+      <div><strong>Name:</strong> {{ profile.name.value if profile.name else 'not found' }}</div>
+      <div><strong>Email:</strong> {{ profile.email.value if profile.email else 'not found' }}</div>
+      <div><strong>Phone:</strong> {{ profile.phone.value if profile.phone else 'not found' }}</div>
+      {% for l in profile.links %}<div><strong>Link:</strong> {{ l.value }}</div>{% endfor %}
+      <div class="small text-muted mt-1">Sections found: {{ profile.sections_found|join(', ') or 'none' }}</div>
+    </div></div></div>
+  </div>
+
+  <h2 class="h5">Education</h2>
+  {% for e in profile.education %}
+    <div class="mb-2"><strong>{{ e.degree }}</strong>{% if e.field %} in {{ e.field }}{% endif %}
+      <span class="badge bg-secondary">{{ e.level }}</span><br>
+      {{ e.institution or 'institution not found' }}{% if e.end_year %} &middot; {{ e.start_year or '' }}{% if e.start_year %}&ndash;{% endif %}{{ e.end_year }}{% endif %}
+      <details class="small text-muted"><summary>Evidence</summary>{{ e.evidence.text }}</details></div>
+  {% else %}<p class="text-muted">No education entries found.</p>{% endfor %}
+
+  <h2 class="h5 mt-4">Skills</h2>
+  {% if profile.skills %}
+  <table class="table table-sm bg-white"><thead><tr><th>Skill</th><th>Category</th><th>Type</th><th>Confidence</th><th>Evidence</th></tr></thead><tbody>
+  {% for s in profile.skills %}
+    <tr><td>{{ s.name }}</td><td>{{ s.category }}</td>
+      <td><span class="badge {{ 'bg-success' if s.source_type == 'explicit' else 'bg-info text-dark' }}">{{ s.source_type }}</span></td>
+      <td>{{ '%.0f' % (s.confidence * 100) }}%</td><td class="small">{{ s.evidence.text }}</td></tr>
+  {% endfor %}</tbody></table>
+  <p class="small text-muted">Explicit = written in the resume. Inferred = suggested by related tools; lower confidence, never counted as stated.</p>
+  {% else %}<p class="text-muted">No skills from the taxonomy were found.</p>{% endif %}
+
+  <h2 class="h5 mt-4">Experience</h2>
+  {% set es = profile.experience_summary %}
+  <p class="small text-muted">Professional: {{ es.professional_months }} months &middot; Internships: {{ es.internship_months }} months &middot; {{ es.note }}</p>
+  {% for e in profile.experience + profile.internships %}
+    <div class="mb-2"><strong>{{ e.title }}</strong> <span class="text-muted">{{ e.start }} &ndash; {{ e.end }}{% if e.months is not none %} ({{ e.months }} months){% endif %}</span>
+      <ul class="small mb-0">{% for d in e.description %}<li>{{ d }}</li>{% endfor %}</ul></div>
+  {% else %}<p class="text-muted">No dated experience entries found.</p>{% endfor %}
+
+  <h2 class="h5 mt-4">Projects</h2>
+  {% for p in profile.projects %}<div class="mb-2"><strong>{{ p.title }}</strong>
+    <ul class="small mb-0">{% for d in p.description %}<li>{{ d }}</li>{% endfor %}</ul></div>
+  {% else %}<p class="text-muted">No projects found.</p>{% endfor %}
+
+  <h2 class="h5 mt-4">Certifications</h2>
+  {% for c in profile.certifications %}<span class="badge bg-dark me-1">{{ c.name }}</span>{% else %}<p class="text-muted">None found.</p>{% endfor %}
+
+  <h2 class="h5 mt-4">Achievements</h2>
+  <ul>{% for a in profile.achievements %}<li>{{ a.text }}</li>{% else %}<li class="text-muted">None found.</li>{% endfor %}</ul>
+
+  <p class="small text-muted">Extraction is rule-based and may miss or misread items. Please verify it against your resume.</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('resumes.reparse', resume_id=resume.id) }}" class="d-inline">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button class="btn btn-outline-secondary btn-sm" type="submit">Re-analyse</button>
+</form>
+<a class="btn btn-link btn-sm" href="{{ url_for('resumes.index') }}">Back</a>
+{% endblock %}

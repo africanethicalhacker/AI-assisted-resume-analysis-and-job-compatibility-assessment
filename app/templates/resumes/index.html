@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% from "_macros.html" import field %}
+{% block title %}My resumes{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">My resumes</h1>
+<form method="post" enctype="multipart/form-data" class="mb-4" novalidate>
+  {{ form.hidden_tag() }}{{ field(form.file) }}{{ form.submit(class="btn btn-primary") }}
+  <div class="form-text">PDF or DOCX, scanned for malware and encrypted at rest.</div>
+</form>
+{% if rows %}
+<table class="table table-sm bg-white">
+  <thead><tr><th>Name</th><th>Type</th><th>Size (bytes)</th><th>Uploaded (UTC)</th><th>Scan</th><th></th></tr></thead>
+  <tbody>
+  {% for r, name in rows %}
+    <tr>
+      <td><a href="{{ url_for('resumes.detail', resume_id=r.id) }}">{{ name }}</a></td>
+      <td>{{ r.detected_mime.split('/')[-1][:12] }}</td><td>{{ r.size_bytes }}</td>
+      <td>{{ r.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ r.scan_status }}</td>
+      <td>
+        <form method="post" action="{{ url_for('resumes.delete', resume_id=r.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<p class="text-muted">No resumes uploaded yet.</p>{% endif %}
+{% endblock %}

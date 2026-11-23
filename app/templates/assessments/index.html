@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% from "_macros.html" import field %}
+{% block title %}Assessments{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Job compatibility assessments</h1>
+{% if have_inputs %}
+<form method="post" class="row g-2 align-items-end mb-4" novalidate>
+  {{ form.hidden_tag() }}
+  <div class="col-md-5">{{ field(form.resume_id) }}</div><div class="col-md-5">{{ field(form.job_id) }}</div>
+  <div class="col-md-2 mb-3">{{ form.submit(class="btn btn-primary") }}</div>
+</form>
+{% else %}
+<div class="alert alert-info">Upload at least one resume and add one job description first.</div>
+{% endif %}
+{% if history %}
+<table class="table table-sm bg-white"><thead><tr><th>Job</th><th>Score</th><th>Method</th><th>Date (UTC)</th><th></th></tr></thead><tbody>
+{% for a in history %}<tr>
+  <td><a href="{{ url_for('assessments.detail', assessment_id=a.id) }}">{{ (a.meta or {}).get('job_title', 'Job #' ~ a.job_id) }}</a></td>
+  <td>{{ '%.1f' % a.final_score }}</td><td class="small">{{ a.model_version }}</td><td>{{ a.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+  <td><form method="post" action="{{ url_for('assessments.delete', assessment_id=a.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button></form></td></tr>{% endfor %}
+</tbody></table>
+{% endif %}
+{% endblock %}

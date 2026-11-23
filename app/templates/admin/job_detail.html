@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title }}{% endblock %}
+{% block content %}
+<a class="small" href="{{ url_for('admin.jobs') }}">&larr; Job postings</a>
+<h1 class="h4 mt-2">{{ job.title }} <span class="badge {{ 'bg-success' if job.status == 'open' else 'bg-secondary' }} fs-6">{{ job.status }}</span></h1>
+<p class="text-muted">{{ job.organization or 'Organisation not stated' }}</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="stat-label">Checks</div><div class="stat-value">{{ stats.checks }}</div><div class="small text-muted">{{ stats.candidates }} candidate(s)</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="stat-label">Average match</div><div class="stat-value">{{ stats.average_percent if stats.average_percent is not none else 'n/a' }}</div></div></div></div>
+  <div class="col-12 col-md-6"><div class="card h-100"><div class="card-body"><div class="stat-label">Outcomes</div>
+    <div>Likely eligible: <strong>{{ stats.verdicts.eligible }}</strong> &middot; Partially: <strong>{{ stats.verdicts.partial }}</strong> &middot; Not yet: <strong>{{ stats.verdicts.not_eligible }}</strong></div>
+    <div class="small text-muted">Totals only; no candidate is identifiable.</div></div></div></div>
+</div>
+
+<form method="post" action="{{ url_for('admin.job_requirements', job_id=job.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="card mb-3"><div class="card-body">
+    <h2 class="h6">Requirements found in the description</h2>
+    <p class="small text-muted">Candidates are screened against these. Fix any that were classified wrongly: a mandatory requirement that is not met stops a candidate from being &ldquo;likely eligible&rdquo;.</p>
+    <div class="mb-3 col-md-3"><label class="form-label" for="threshold">Match needed to be eligible (%)</label>
+      <input class="form-control" id="threshold" name="threshold" type="number" min="0" max="100" value="{{ job.threshold }}"></div>
+    <table class="table table-sm"><thead><tr><th>Type</th><th>Requirement</th><th>Strength</th><th>Remove</th></tr></thead><tbody>
+    {% for r in reqs %}<tr><td>{{ r.kind }}</td><td>{{ r.requirement_text }}</td>
+      <td><select class="form-select form-select-sm" name="strength_{{ r.id }}" aria-label="Strength of {{ r.requirement_text }}">
+        {% for s in ['mandatory', 'preferred', 'optional'] %}<option value="{{ s }}" {{ 'selected' if r.strength == s }}>{{ s }}</option>{% endfor %}</select></td>
+      <td><input class="form-check-input" type="checkbox" name="remove_{{ r.id }}" aria-label="Remove {{ r.requirement_text }}"></td></tr>
+    {% else %}<tr><td colspan="4" class="text-muted">No requirements were found. Check the description.</td></tr>{% endfor %}
+    </tbody></table>
+    <button class="btn btn-primary btn-sm" type="submit">Save changes</button>
+  </div></div>
+</form>
+
+<div class="mb-3">
+  <form class="d-inline" method="post" action="{{ url_for('admin.job_status', job_id=job.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-secondary btn-sm" type="submit">{{ 'Close this job' if job.status == 'open' else 'Reopen this job' }}</button></form>
+  <form class="d-inline" method="post" action="{{ url_for('admin.job_delete', job_id=job.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-danger btn-sm" type="submit">Delete (only if nobody has checked it)</button></form>
+</div>
+<details><summary>Job description</summary><div class="small mt-2 pre-wrap">{{ description }}</div></details>
+{% endblock %}

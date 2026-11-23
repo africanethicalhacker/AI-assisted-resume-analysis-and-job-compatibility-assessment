@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Job board{% endblock %}
+{% block content %}
+<h1 class="h4 mb-1">Job board</h1>
+<p class="text-muted">Open jobs posted by the administrator. Pick one, upload your CV, and see how well you match and whether you are likely to be eligible.</p>
+{% if jobs %}
+<div class="row g-3">
+  {% for j in jobs %}
+  <div class="col-md-6"><div class="card job-card h-100"><div class="card-body">
+    <h2 class="h5 mb-1"><a class="text-decoration-none" href="{{ url_for('board.detail', job_id=j.id) }}">{{ j.title }}</a></h2>
+    <div class="text-muted small mb-2">{{ j.organization or 'Organisation not stated' }} &middot; posted {{ j.created_at.strftime('%Y-%m-%d') }}</div>
+    <div class="small mb-3">{{ counts[j.id] }} mandatory requirement{{ '' if counts[j.id] == 1 else 's' }} &middot; {{ j.threshold }}% match needed</div>
+    <a class="btn btn-primary btn-sm" href="{{ url_for('board.detail', job_id=j.id) }}">Check my eligibility</a>
+  </div></div></div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">No jobs are open right now. Please check again later.</div>
+{% endif %}
+<p class="small text-muted mt-4">You can also test a job description you paste yourself under <a href="{{ url_for('jobs.index') }}">Jobs</a>.</p>
+{% endblock %}

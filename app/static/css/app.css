@@ -1,0 +1,28 @@
+/* Light polish on top of Bootstrap. Own file, so it works under the strict CSP. */
+:root { --brand: #0b3d91; --soft: #f4f7fc; }
+body { background: var(--soft); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.navbar { background: linear-gradient(90deg, #0b2a5b, var(--brand)) !important; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.navbar-brand { font-weight: 700; letter-spacing: .3px; }
+.card { border: 0; border-radius: .75rem; box-shadow: 0 1px 4px rgba(20,40,80,.08); }
+.card .card-body > .fs-3, .card .card-body > .display-5, .card .card-body > .display-6 { color: var(--brand); font-weight: 700; }
+.table { border-radius: .5rem; overflow: hidden; }
+.table thead th { background: #e8eefb; border-bottom: 0; font-weight: 600; }
+.btn-primary { background: var(--brand); border-color: var(--brand); }
+h1.h4 { color: var(--brand); font-weight: 700; }
+.stat-label { color: #6c757d; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+.stat-value { font-size: 1.8rem; font-weight: 700; color: var(--brand); line-height: 1.2; }
+.status-dot { display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; margin-right: .35rem; }
+.status-ok { background: #198754; } .status-warn { background: #fd7e14; } .status-bad { background: #dc3545; }
+
+/* match percentage bar (no inline styles: the CSP forbids them) */
+progress.match-bar { width: 100%; height: 1.5rem; border: 0; border-radius: .75rem; overflow: hidden; background: #dfe7ef; }
+progress.match-bar::-webkit-progress-bar { background: #dfe7ef; }
+progress.match-bar::-webkit-progress-value { background: #6c757d; }
+progress.match-bar::-moz-progress-bar { background: #6c757d; }
+progress.match-bar.v-eligible::-webkit-progress-value { background: #2e9e6b; } progress.match-bar.v-eligible::-moz-progress-bar { background: #2e9e6b; }
+progress.match-bar.v-partial::-webkit-progress-value { background: #f2a900; } progress.match-bar.v-partial::-moz-progress-bar { background: #f2a900; }
+progress.match-bar.v-not_eligible::-webkit-progress-value { background: #d64550; } progress.match-bar.v-not_eligible::-moz-progress-bar { background: #d64550; }
+.big-percent { font-size: 4rem; font-weight: 800; line-height: 1; }
+.job-card { transition: transform .12s ease; } .job-card:hover { transform: translateY(-2px); }
+
+.pre-wrap { white-space: pre-wrap; }

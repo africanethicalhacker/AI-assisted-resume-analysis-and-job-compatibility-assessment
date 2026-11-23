@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% from "_macros.html" import field %}
+{% block title %}Scoring configuration{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Scoring configuration</h1>
+<div class="alert alert-secondary">Initial weights (35/25/15/15/10) are experimental hypotheses, to be validated in Experiment 2.
+  Weights must total 100. Changes apply to new assessments; every assessment stores the weights it used.</div>
+<form method="post" class="row g-2" novalidate>
+  {{ form.hidden_tag() }}
+  <div class="col-md-4">{{ field(form.skills) }}</div><div class="col-md-4">{{ field(form.semantic) }}</div>
+  <div class="col-md-4">{{ field(form.education) }}</div><div class="col-md-4">{{ field(form.experience) }}</div>
+  <div class="col-md-4">{{ field(form.projects_certs) }}</div>
+  <div class="col-md-4">{{ field(form.semantic_mode) }}</div><div class="col-md-4">{{ field(form.blend_alpha) }}</div>
+  <div class="col-12">{{ form.submit(class="btn btn-primary") }}</div>
+</form>
+{% endblock %}

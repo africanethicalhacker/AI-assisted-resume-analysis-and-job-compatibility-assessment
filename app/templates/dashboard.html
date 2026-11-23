@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{% if admin %}
+<h1 class="h4 mb-3">System overview</h1>
+{% macro stat(label, value, hint='') %}
+<div class="col-6 col-md-3"><div class="card h-100"><div class="card-body">
+  <div class="stat-label">{{ label }}</div><div class="stat-value">{{ value if value is not none else 'n/a' }}</div>
+  {% if hint %}<div class="small text-muted">{{ hint }}</div>{% endif %}</div></div></div>
+{% endmacro %}
+<div class="row g-3 mb-3">
+  {{ stat('Users', ov.users.total, ov.users.candidates ~ ' candidates, ' ~ ov.users.administrators ~ ' admins') }}
+  {{ stat('Resumes stored', ov.data.resumes, ov.data.expiring_7d ~ ' expire within 7 days') }}
+  {{ stat('Jobs posted', ov.data.postings_open, ov.data.postings_total ~ ' in total, ' ~ ov.data.checks_on_postings ~ ' candidate checks') }}
+  {{ stat('Assessments', ov.data.assessments, 'average score ' ~ (ov.data.avg_score if ov.data.avg_score is not none else 'n/a')) }}
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">System health</h2>
+    <div class="mb-1"><span class="status-dot {{ 'status-ok' if ov.health.audit_chain_ok else 'status-bad' }}"></span>
+      Audit log integrity: {{ 'verified' if ov.health.audit_chain_ok else 'BROKEN at row ' ~ ov.health.audit_bad_id }}</div>
+    <div class="mb-1"><span class="status-dot {{ 'status-ok' if ov.health.scanner == 'online' else 'status-bad' }}"></span>
+      Malware scanner (ClamAV): {{ ov.health.scanner }}</div>
+    <div class="mb-1"><span class="status-dot status-warn"></span>Sentence-BERT model: {{ ov.health.sbert }}</div>
+    <div class="mb-1"><span class="status-dot {{ 'status-warn' if ov.users.locked else 'status-ok' }}"></span>
+      Locked accounts: {{ ov.users.locked }}</div>
+    <div class="small text-muted mt-2">Active skills in taxonomy: {{ ov.data.skills }}</div>
+  </div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Last 24 hours</h2>
+    <table class="table table-sm mb-0"><tbody>
+      <tr><td>Audit events</td><td>{{ ov.activity_24h.events }}</td></tr>
+      <tr><td>Assessments run</td><td>{{ ov.activity_24h.assessments }}</td></tr>
+      <tr><td>Failed or blocked logins</td><td>{{ ov.activity_24h.failed_logins }}</td></tr>
+      <tr><td>Uploads rejected</td><td>{{ ov.activity_24h.uploads_rejected }}</td></tr>
+      <tr><td>Access denied</td><td>{{ ov.activity_24h.access_denied }}</td></tr>
+    </tbody></table></div></div></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Scoring configuration</h2>
+    <div class="small">Semantic method: <strong>{{ ov.scoring.semantic_mode }}</strong></div>
+    <div class="small">{% for k, v in ov.scoring.weights.items() %}{{ k.replace('_', ' ') }} {{ v }}%{{ ' · ' if not loop.last }}{% endfor %}</div>
+    <a class="small" href="{{ url_for('admin.scoring') }}">Change weights</a> &middot; <a class="small" href="{{ url_for('admin.skills') }}">Manage skills</a>
+  </div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Recent events</h2>
+    <table class="table table-sm mb-0"><thead><tr><th>Time (UTC)</th><th>Action</th><th>Outcome</th></tr></thead><tbody>
+    {% for e in ov.recent %}<tr><td class="small">{{ e.created_at.strftime('%m-%d %H:%M:%S') }}</td><td class="small">{{ e.action }}</td>
+      <td><span class="badge {{ 'bg-success' if e.outcome == 'success' else 'bg-danger' if e.outcome in ('denied', 'rejected') else 'bg-warning text-dark' }}">{{ e.outcome }}</span></td></tr>
+    {% else %}<tr><td colspan="3" class="text-muted">No events yet.</td></tr>{% endfor %}
+    </tbody></table>
+    <a class="small" href="{{ url_for('admin.index') }}">Full audit log</a>
+  </div></div></div>
+</div>
+<p class="small text-muted">This page shows aggregate counts only. Administrators cannot see candidates' resumes, profiles or job descriptions.</p>
+{% else %}
+<h1 class="h4 mb-3">Assessment dashboard</h1>
+{% set L = data.latest %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body">
+    <div class="text-muted small">Resume completeness</div>
+    <div class="fs-3">{{ '%.0f' % data.quality_score if data.quality_score is not none else 'n/a' }}</div>
+    <div class="small text-muted">heuristic, not ability</div></div></div></div>
+  {% macro tile(label, key, L) %}
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body">
+    <div class="text-muted small">{{ label }}</div>
+    {% set c = (L.components | selectattr('key', 'equalto', key) | list | first) if L else none %}
+    <div class="fs-3">{{ ('%.0f' % c.score) if c and c.score is not none else 'n/a' }}</div></div></div></div>
+  {% endmacro %}
+  <div class="col-6 col-md-3"><div class="card h-100 border-primary"><div class="card-body">
+    <div class="text-muted small">Job compatibility{% if L %} &middot; {{ L.job }}{% endif %}</div>
+    <div class="fs-3">{{ L.final_score if L else 'n/a' }}</div>
+    {% if L %}<a class="small" href="{{ url_for('assessments.detail', assessment_id=L.id) }}">View breakdown</a>{% endif %}</div></div></div>
+  {{ tile('Skill matching', 'skills', L) }}{{ tile('Semantic similarity', 'semantic', L) }}
+  {{ tile('Education relevance', 'education', L) }}{{ tile('Experience relevance', 'experience', L) }}
+</div>
+
+{% if L %}
+<div id="dash-data" class="visually-hidden" data-url="{{ url_for('api.dashboard_data') }}">Loading charts...</div>
+<div class="row g-3 mb-3">
+  <div class="col-md-7"><div class="card"><div class="card-body"><h2 class="h6">Component scores (latest)</h2><canvas id="chart-components" height="160"></canvas></div></div></div>
+  <div class="col-md-5"><div class="card"><div class="card-body"><h2 class="h6">Skill coverage</h2>
+    {% if L.has_skills %}<canvas id="chart-skills" height="160"></canvas>{% else %}<p class="text-muted">No recognised skills in that job.</p>{% endif %}</div></div></div>
+</div>
+<div class="card mb-3"><div class="card-body"><h2 class="h6">Score history</h2><canvas id="chart-history" height="90"></canvas></div></div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body"><h2 class="h6">Missing skills</h2>
+    {% if L.missing_mandatory %}<div class="mb-1"><span class="badge bg-danger">mandatory</span> {{ L.missing_mandatory | join(', ') }}</div>{% endif %}
+    {% if L.missing_preferred %}<div><span class="badge bg-warning text-dark">preferred</span> {{ L.missing_preferred | join(', ') }}</div>{% endif %}
+    {% if not L.missing_mandatory and not L.missing_preferred %}<p class="text-muted mb-0">None missing.</p>{% endif %}</div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body"><h2 class="h6">Recommended career roles</h2>
+    {% for r in L.roles %}<div>{{ r.role }} <span class="badge bg-secondary">{{ r.level }}</span> <span class="small text-muted">fit {{ r.fit }}</span></div>
+    {% else %}<p class="text-muted mb-0">Not enough evidence in the resume yet.</p>{% endfor %}</div></div></div>
+</div>
+{% if config.VENDORED_ASSETS %}<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+{% else %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>{% endif %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% else %}
+<div class="alert alert-info">No assessments yet. Upload a resume, add a job description, then run an assessment.</div>
+{% endif %}
+
+<h2 class="h6 mt-3">Assessment history</h2>
+{% if data.history %}
+<table class="table table-sm bg-white"><thead><tr><th>Date (UTC)</th><th>Job</th><th>Score</th></tr></thead><tbody>
+{% for h in data.history | reverse %}<tr><td>{{ h.date }}</td><td><a href="{{ url_for('assessments.detail', assessment_id=h.id) }}">{{ h.job }}</a></td><td>{{ h.score }}</td></tr>{% endfor %}
+</tbody></table>{% else %}<p class="text-muted">Nothing yet.</p>{% endif %}
+{% endif %}
+{% endblock %}

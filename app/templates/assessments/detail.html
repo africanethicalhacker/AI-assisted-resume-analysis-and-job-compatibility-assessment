@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Assessment{% endblock %}
+{% block content %}
+<h1 class="h4">{{ meta.get('job_title', 'Assessment') }}</h1>
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card"><div class="card-body">
+    <div class="text-muted small">Compatibility score</div>
+    <div class="display-5">{{ '%.1f' % a.final_score }}<small class="fs-6">/100</small></div>
+    <div class="small text-muted">{{ a.model_version }}</div>
+    <a class="btn btn-outline-primary btn-sm mt-2" href="{{ url_for('assessments.report', assessment_id=a.id) }}">Download PDF report</a></div></div></div>
+  <div class="col-md-8"><div class="alert alert-secondary mb-0">
+    This score supports a human decision; it is not a hiring decision. Weights are experimental and
+    configurable. Each component shows how many points it adds, so the total is fully traceable.</div></div>
+</div>
+
+{% if meta.get('flags') %}
+<div class="alert alert-warning"><strong>Integrity notes</strong><ul class="mb-0">
+  {% for f in meta.flags %}<li>{{ f.message }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+<table class="table bg-white"><thead><tr><th>Component</th><th>Score (0-100)</th><th>Weight used</th><th>Points added</th><th>Note</th></tr></thead><tbody>
+{% for d in details %}{% set ex = d.explanation %}
+<tr class="{{ '' if ex.applicable else 'text-muted' }}">
+  <td>{{ ex.label }}</td>
+  <td>{{ '%.1f' % d.score if ex.applicable else 'n/a' }}</td>
+  <td>{{ '%.0f' % (d.weight * 100) }}%{% if ex.applicable and (ex.configured_weight * 100)|round(0) != (d.weight * 100)|round(0) %} <span class="small">(configured {{ '%.0f' % (ex.configured_weight * 100) }}%)</span>{% endif %}</td>
+  <td>{{ '%.1f' % d.contribution }}</td>
+  <td class="small">
+    {% if not ex.applicable %}{{ ex.details.reason }}
+    {% elif d.component == 'semantic' %}{{ ex.details.method_used }} &middot; TF-IDF {{ ex.details.tfidf_cosine }} &middot; SBERT {{ ex.details.sbert_coverage if ex.details.sbert_coverage is not none else 'n/a' }} {{ ex.details.note }}
+    {% elif d.component == 'education' %}level score {{ ex.details.get('level_score', 'n/a') }}, field score {{ ex.details.get('field_score', 'n/a') }}
+    {% elif d.component == 'experience' %}{{ ex.details.effective_months }} effective months vs {{ ex.details.required_months }} required
+    {% elif d.component == 'projects_certs' %}{% if ex.details.projects %}projects {{ ex.details.projects.score }}{% endif %} {% if ex.details.certifications %}certifications {{ ex.details.certifications.score }}{% endif %}
+    {% else %}weighted coverage of required skills{% endif %}
+  </td></tr>
+{% endfor %}
+<tr class="table-light"><th>Total</th><td></td><td>100%</td><th>{{ '%.1f' % a.final_score }}</th><td></td></tr>
+</tbody></table>
+<p class="small text-muted">Weights are renormalised across components that apply to this job. A component is &ldquo;n/a&rdquo; when the job description gives nothing to compare.</p>
+
+<h2 class="h5 mt-4">Required skills</h2>
+{% if skills_rows %}
+<table class="table table-sm bg-white"><thead><tr><th>Skill</th><th>Required as</th><th>Status</th><th>Evidence in resume</th></tr></thead><tbody>
+{% for r in skills_rows %}<tr><td>{{ r.skill }}</td><td>{{ r.strength }}</td>
+  <td><span class="badge {{ {'matched':'bg-success','partial':'bg-info text-dark','missing':'bg-danger'}[r.status] }}">{{ r.status }}</span></td>
+  <td class="small">{{ r.evidence }}</td></tr>{% endfor %}
+</tbody></table>
+<p class="small text-muted">Matched = written in the resume. Partial = only inferred from related tools (half credit). Missing = not found.</p>
+{% else %}<p class="text-muted">The job lists no recognised skills.</p>{% endif %}
+
+{% set gap = meta.get('gap') %}
+{% if gap %}
+<h2 class="h5 mt-4">Skill-gap analysis</h2>
+<div class="row g-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h3 class="h6">Skills you have</h3>
+    {% for m in gap.skills.matched %}<span class="badge bg-success me-1">{{ m.skill }}</span>{% else %}<span class="text-muted">None of the required skills were found.</span>{% endfor %}
+    {% if gap.skills.partial %}<h3 class="h6 mt-3">Partially matching (inferred only)</h3>
+      {% for p in gap.skills.partial %}<span class="badge bg-info text-dark me-1">{{ p.skill }}</span>{% endfor %}{% endif %}
+    {% if gap.skills.additional %}<h3 class="h6 mt-3">Additional relevant skills</h3>
+      {% for n in gap.skills.additional %}<span class="badge bg-secondary me-1">{{ n }}</span>{% endfor %}{% endif %}
+  </div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <h3 class="h6">Missing</h3>
+    {% for label, key, cls in [('Mandatory', 'mandatory', 'bg-danger'), ('Preferred', 'preferred', 'bg-warning text-dark'), ('Optional', 'optional', 'bg-secondary')] %}
+      {% if gap.skills.missing[key] %}<div class="mb-1"><span class="badge {{ cls }}">{{ label }}</span>
+        {% for m in gap.skills.missing[key] %}{{ m.skill }} <span class="text-muted small">(+{{ m.potential_points }} pts)</span>{{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+    {% endfor %}
+    {% if gap.education %}<div class="small mt-2">Education: needs <strong>{{ gap.education.required }}</strong>, you have <strong>{{ gap.education.candidate }}</strong>.</div>{% endif %}
+    {% if gap.experience %}<div class="small">Experience: {{ gap.experience.shortfall_months }} months short of the {{ gap.experience.required_months }} required.</div>{% endif %}
+    {% if gap.certifications and gap.certifications.missing %}<div class="small">Certifications not found: {{ gap.certifications.missing | map(attribute='certification') | join(', ') }}.</div>{% endif %}
+  </div></div></div>
+</div>
+{% if gap.priorities %}
+<h3 class="h6 mt-3">What to work on first</h3>
+<ol class="small">{% for p in gap.priorities[:6] %}<li>{{ p.item }} <span class="text-muted">({{ p.type }}, about +{{ p.potential_points }} points)</span></li>{% endfor %}</ol>
+<p class="small text-muted">Point estimates show how much of the skills component each item is worth. They are for prioritising, not a promise of the outcome.</p>
+{% endif %}
+{% endif %}
+
+{% if a.recommendations %}
+<h2 class="h5 mt-4">Recommended career roles</h2>
+<p class="small text-muted">Based only on skills found in your resume. Not a prediction of employment; certification prerequisites change, so check each issuer&rsquo;s current rules.</p>
+{% for r in a.recommendations | sort(attribute='rank') %}
+<div class="card mb-2"><div class="card-body">
+  <div><strong>{{ r.rank }}. {{ r.role_name }}</strong> <span class="badge bg-secondary">{{ r.evidence_level }} evidence</span> <span class="text-muted small">fit {{ r.fit_score }}</span></div>
+  <div class="small mt-1"><strong>Matching:</strong> {{ r.matching_skills | join(', ') or 'none' }}</div>
+  <div class="small"><strong>To build:</strong> {{ r.missing_skills[:6] | join(', ') or 'nothing major' }}</div>
+  <div class="small"><strong>Certifications often associated:</strong>
+    {% for c in r.suggested_certs %}{{ c.name }}{{ ' (held)' if c.already_held }}{{ ', ' if not loop.last }}{% endfor %}</div>
+  {% if r.roadmap %}<details class="small mt-1"><summary>Learning roadmap</summary><ol>
+    {% for st in r.roadmap %}<li><strong>{{ st.skill }}</strong> ({{ st.priority }}): {{ st.action }}</li>{% endfor %}</ol></details>{% endif %}
+</div></div>
+{% endfor %}
+{% endif %}
+<a href="{{ url_for('assessments.index') }}">Back</a>
+{% endblock %}

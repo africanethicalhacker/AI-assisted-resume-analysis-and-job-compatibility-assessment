@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% from "_macros.html" import field %}
+{% block title %}Job postings{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Job postings</h1>
+<div class="card mb-4"><div class="card-body">
+  <h2 class="h6">Post a new job</h2>
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="row"><div class="col-md-6">{{ field(form.title) }}</div><div class="col-md-4">{{ field(form.organization) }}</div><div class="col-md-2">{{ field(form.threshold) }}</div></div>
+    {{ field(form.text) }}{{ field(form.file) }}
+    {{ form.submit(class="btn btn-primary") }}
+    <div class="form-text">Requirements are found automatically and marked mandatory only when the text says so. You can correct them after posting.</div>
+  </form>
+</div></div>
+
+{% if postings %}
+<table class="table table-sm bg-white"><thead><tr><th>Title</th><th>Status</th><th>Match needed</th><th>Checks</th><th>Average match</th><th>Posted (UTC)</th></tr></thead><tbody>
+{% for j in postings %}{% set st = stats[j.id] %}<tr>
+  <td><a href="{{ url_for('admin.job_detail', job_id=j.id) }}">{{ j.title }}</a></td>
+  <td><span class="badge {{ 'bg-success' if j.status == 'open' else 'bg-secondary' }}">{{ j.status }}</span></td>
+  <td>{{ j.threshold }}%</td><td>{{ st.checks }}</td><td>{{ st.average_percent if st.average_percent is not none else 'n/a' }}</td>
+  <td>{{ j.created_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>{% endfor %}
+</tbody></table>
+{% else %}<p class="text-muted">No jobs posted yet.</p>{% endif %}
+<p class="small text-muted">Administrators see only totals. Candidates' CVs, profiles and individual results are never shown here.</p>
+{% endblock %}

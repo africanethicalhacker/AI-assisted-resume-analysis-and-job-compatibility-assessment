@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Eligibility result{% endblock %}
+{% block content %}
+{% set badge = {'eligible': 'bg-success', 'partial': 'bg-warning text-dark', 'not_eligible': 'bg-danger'}[elig.verdict] %}
+<a class="small" href="{{ url_for('board.index') }}">&larr; Job board</a>
+<h1 class="h4 mt-2">{{ meta.get('job_title', 'Job') }}</h1>
+
+<div class="card mb-3"><div class="card-body">
+  <div class="row align-items-center g-3">
+    <div class="col-md-3 text-center"><div class="big-percent">{{ elig.percentage }}%</div><div class="text-muted small">match with this job</div></div>
+    <div class="col-md-9">
+      <span class="badge {{ badge }} fs-6 mb-2">{{ elig.label }}</span>
+      <progress class="match-bar v-{{ elig.verdict }}" max="100" value="{{ elig.percentage }}" aria-label="Match percentage">{{ elig.percentage }}%</progress>
+      <div class="small text-muted mt-1">The job asks for at least {{ elig.threshold }}%.</div>
+    </div>
+  </div>
+</div></div>
+
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Why this result</h2>
+    <ul class="mb-0">{% for r in elig.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Mandatory requirements</h2>
+    {% if elig.checks %}
+    <table class="table table-sm mb-0"><tbody>
+    {% for c in elig.checks %}<tr><td>{{ c.type }}: <strong>{{ c.requirement }}</strong><div class="small text-muted">{{ c.detail }}</div></td>
+      <td class="text-end"><span class="badge {{ {'met': 'bg-success', 'not met': 'bg-danger', 'unconfirmed': 'bg-warning text-dark'}[c.status] }}">{{ c.status }}</span></td></tr>{% endfor %}
+    </tbody></table>
+    {% else %}<p class="text-muted mb-0">This job lists no mandatory requirements, so the result depends on the match only.</p>{% endif %}
+  </div></div></div>
+</div>
+
+<h2 class="h6 mt-4">How the percentage was made</h2>
+<table class="table table-sm bg-white"><thead><tr><th>Component</th><th>Score (0-100)</th><th>Weight used</th><th>Points added</th></tr></thead><tbody>
+{% for d in details %}{% set ex = d.explanation %}<tr class="{{ '' if ex.applicable else 'text-muted' }}">
+  <td>{{ ex.label }}</td><td>{{ '%.0f' % d.score if ex.applicable else 'n/a' }}</td><td>{{ '%.0f' % (d.weight * 100) }}%</td><td>{{ '%.1f' % d.contribution }}</td></tr>{% endfor %}
+<tr class="table-light"><th>Total</th><td></td><td>100%</td><th>{{ '%.1f' % a.final_score }}</th></tr></tbody></table>
+
+{% if priorities %}
+<h2 class="h6 mt-4">What would improve your result</h2>
+<ol class="small">{% for p in priorities %}<li>{{ p.item }} <span class="text-muted">({{ p.type }})</span></li>{% endfor %}</ol>
+{% endif %}
+
+<div class="mb-3">
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('assessments.detail', assessment_id=a.id) }}">Full analysis and career suggestions</a>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('assessments.report', assessment_id=a.id) }}">Download PDF report</a>
+  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('board.index') }}">Check another job</a>
+</div>
+<p class="small text-muted">{{ elig.rule }} The percentage shows how well your CV text matches the job; it is not a probability of being hired.</p>
+{% endblock %}

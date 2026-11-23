@@ -1,0 +1,9 @@
+cd ~/resume_ai && source .venv/bin/activate
+flask --app run db migrate -m "job board"
+flask --app run db upgrade
+python -m pytest -q
+python run.py
+
+
+
+cloudflared tunnel --url http://127.0.0.1:5000

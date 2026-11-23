@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% from "_macros.html" import field %}
+{% block title %}Skill taxonomy{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">Skill taxonomy</h1>
+<form method="post" class="row g-2 align-items-end mb-4" novalidate>
+  {{ form.hidden_tag() }}
+  <div class="col-md-3">{{ field(form.name) }}</div><div class="col-md-3">{{ field(form.category) }}</div>
+  <div class="col-md-4">{{ field(form.aliases) }}</div><div class="col-md-2 mb-3">{{ form.submit(class="btn btn-primary") }}</div>
+</form>
+<table class="table table-sm bg-white"><thead><tr><th>Skill</th><th>Category</th><th>Aliases</th><th>Status</th><th></th></tr></thead><tbody>
+{% for s in skills %}<tr><td>{{ s.name }}</td><td>{{ s.category }}</td><td class="small">{{ (s.aliases or '').replace('|', ', ') }}</td>
+  <td>{{ 'active' if s.is_active else 'disabled' }}</td>
+  <td><form method="post" action="{{ url_for('admin.toggle_skill', skill_id=s.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-secondary btn-sm" type="submit">{{ 'Disable' if s.is_active else 'Enable' }}</button></form></td></tr>{% endfor %}
+</tbody></table>
+<p class="small text-muted">New skills apply to new analyses. Use Re-analyse on a resume to apply them to existing ones.</p>
+{% endblock %}

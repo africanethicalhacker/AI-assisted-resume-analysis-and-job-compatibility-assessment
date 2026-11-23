@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% from "_macros.html" import field %}
+{% block title %}My account{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3">My account and data</h1>
+<p>Signed in as <strong>{{ current_user.email }}</strong>. You currently have {{ n_resumes }} stored resume(s).
+  Resumes are deleted automatically after the retention period.</p>
+<h2 class="h6">Download my data</h2>
+<p class="small text-muted">Everything stored about you (profile, skills, job descriptions, assessments) as a JSON file.</p>
+<a class="btn btn-outline-primary btn-sm mb-4" href="{{ url_for('account.export') }}">Download my-data.json</a>
+<h2 class="h6 text-danger">Delete my account</h2>
+<p class="small text-muted">This permanently removes your resumes, parsed profiles, job descriptions and assessments. It cannot be undone.</p>
+<form method="post" action="{{ url_for('account.delete') }}" novalidate class="col-md-6">
+  {{ form.hidden_tag() }}{{ field(form.password) }}{{ field(form.confirm) }}
+  {{ form.submit(class="btn btn-danger") }}
+</form>
+{% endblock %}
