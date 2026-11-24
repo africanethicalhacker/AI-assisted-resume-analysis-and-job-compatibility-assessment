@@ -18,3 +18,7 @@ experiments/data/
 !.env.example
 *.log
 app/static/vendor/
+.env.*
+!.env.example
+*.log
+app/static/vendor/
