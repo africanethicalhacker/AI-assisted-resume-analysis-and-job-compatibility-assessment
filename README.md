@@ -181,9 +181,9 @@ docs/           Requirements, manuals, schema, diagrams and report chapters
 
 | Member | Role |
 |---|---|
-| Adoum Youssouf Hassane |  |
-| Aashish Chhetri | [Role] |
-| Majoro Bafokeng John Futhoane | [Role] |
+| Adoum Youssouf Hassane  |
+| Aashish Chhetri  |
+| Majoro Bafokeng John Futhoane |
 
 Developed at the **National Forensic Sciences University (NFSU), Gandhinagar**, as part of the M.Sc. Cyber Security programme.
 
