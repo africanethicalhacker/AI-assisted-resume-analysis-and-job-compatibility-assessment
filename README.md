@@ -177,13 +177,13 @@ docs/           Requirements, manuals, schema, diagrams and report chapters
 
 **Project supervisor:** Dr. Naha Gaulam
 
-**Team:** YOUR TEAM NAME
+**Team:** 
 
 | Member | Role |
 |---|---|
-| Adoum Youssouf Hassane | Project author and lead developer |
-| [Team member name] | [Role] |
-| [Team member name] | [Role] |
+| Adoum Youssouf Hassane |  |
+| Aashish Chhetri | [Role] |
+| Majoro Bafokeng John Futhoane | [Role] |
 
 Developed at the **National Forensic Sciences University (NFSU), Gandhinagar**, as part of the M.Sc. Cyber Security programme.
 
